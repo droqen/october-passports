@@ -1,0 +1,114 @@
+
+[[[[ 1. Client & Server 'Link' scripts ]]]]
+
+Create two MonoBehaviours, QuickClient and QuickServer.
+You'll be using these to keep track of a ClientsideLink and a ServersideLink from the passport library, respectively.
+
+Create a 'CLIENT' object with
+	+ QuickClient
+	+ ClientsideLink
+
+Create a 'SERVER' object with
+	+ QuickServer
+	+ ServersideLink
+
+
+
+[[[[ 2. Test & Test_Reply structs ]]]]
+
+Create two structs, Test and Test_Reply.
+These act as the basic structure of a message:
+The Client sends a serialized 'Test' object, and the Server replies with a 'Test_Reply'.
+
+[System.Serializable]
+public struct Test {
+	public const short OPCODE = 1000;
+	public string message;
+}
+
+[System.Serializable]
+public struct Test_Reply {
+	public string response;
+}
+
+
+
+[[[[ 3. QuickClient: Your first Post ]]]]
+
+QuickClient.Start will attempt to connect to the Server.
+	If that works, it will send a Test message to the Server.
+		If that receives a response, it will print it to the console/log!
+I haven't yet written up a description of how everything in here works, so hopefully you can understand the rest from the raw code.
+
+
+
+using UnityEngine;
+using passport.link;
+
+public class QuickClient:MonoBehaviour {
+	void Start() {
+		ClientsideLink link = GetComponent<ClientsideLink>();
+		link.AttemptConnection(success=>{
+			if (success){
+				this.PostTestToServer();
+			} else {
+				UnityEngine.Debug.Log("Test failed, couldn't even connect to Server.");
+			}
+		});
+	}
+	void PostTestToServer() {
+		ClientsideLink link = GetComponent<ClientsideLink>();
+		link.Post<Test_Reply>(
+			opCode: Test.OPCODE,
+			serializableObject: new Test{message="Hello! I'm the Client."},
+			successCallback: (Test_Reply reply)=>{
+				UnityEngine.Debug.Log("Test succeeded, got response: " + reply.response);
+			},
+			nonSuccessCallback: (status)=>{
+				UnityEngine.Debug.Log("Test failed, status: " + status);
+			}
+		);
+	}
+}
+
+
+
+[[[[ 4. QuickServer: Your first response from the Server ]]]]
+
+QuickServer.Awake will set up a PostHandler through ServersideLink. The link will handle the rest.
+I haven't yet written up a description of how everything in here works, so hopefully you can understand the rest from the raw code.
+
+
+
+using UnityEngine;
+using passport.link;
+using Barebones.Networking;
+
+public class QuickServer:MonoBehaviour {
+	void Awake() {
+		ServersideLink link = GetComponent<ServersideLink>();
+		link.SetPostHandler(
+			opCode: Test.OPCODE,
+			handler: (message)=>{
+				var test = passport.crunch.Capn.Decrunchatize<Test>(
+					message.AsBytes()
+				);
+				message.Respond(
+					passport.crunch.Capn.Crunchatize(
+						new Test_Reply{response="Hi, this is the Server!"}
+					),
+					ResponseStatus.Success
+				);
+			}
+		);
+	}
+}
+
+
+
+[[[[ 5. Oh, it's ready! ]]]]
+
+Give it a try!
+On Start, your Client will attempt to connect to your Server and then send over a Test message.
+The Server will receive the message and reply with its own Test_Reply message.
+Finally, you should get a Log message that says (on the Client's side) what the Server said :)

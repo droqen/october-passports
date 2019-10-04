@@ -1,0 +1,67 @@
+
+the 'passport' library is designed to make quick + easy work of networked games for Unity.
+
+
+anysub - Subscribe to an ISubscribable object, then it will Publish new data.
+
+	[ISubscribable]
+		someone should Subscribe to this,
+		and Publish will report the appropriate object to all subscribers.
+
+	[EasyPublisher]
+		dead simple ISubscribable implementation.
+		you can use it as a helper class for your own ISubscribable object!
+		e.g. public void Subscribe(X) { easyPublisher.Subscribe(X); }
+
+
+
+crunch - Serialization
+
+	[Capn.Crunchatize(object)] Turn an object into byte[] data.
+
+	[Capn.Decrunchatize<T>(byte[] data)] Turn byte[] data into an object of type <T>. no error checking, try{}catch it yourself.
+
+	[KeyedData] obsolete; do not use
+
+
+
+docs - you're here
+
+
+
+link - necessary helper classes for 'linking' to Barebones
+
+	[ServersideLink] Put on your Server object along with Barebones.MasterServerBehaviour
+
+	[ClientsideLink] Put on your Client object, making sure to call AttemptConnection (otherwise it will never connect)
+
+	[Post]
+		Both Link classes have a 'Post' function.
+		Use it to send a Post (message) to a peer.
+		Note that ClientsideLink only has one peer (the Server)
+		while ServersideLink has multiple peers (several Clients).
+
+	[SetPostHandler]
+		Both Link classes have a 'SetPostHandler' function.
+		Use it to setup handlers for Posts (messages) with specific opcodes.
+
+
+story - obsolete; do not use
+
+
+
+story2 - Please use the story system for lockstep simulations.
+
+	[Storyteller] The server uses this class to keep track of several Story objects
+
+	[Story] Both server and client use this class to keep track of & update a Page object
+
+	[IPage]
+		Write your own custom class, likely using BasePage as a child!
+		Keep track of all variables here, whether they're likely to change as a result of a Delta or not.
+		override the ApplyDelta function to apply the appropriate deltas.
+
+	[Delta]
+		In most cases the included Delta class will be enough (but you can implement IDelta if you really want your own)
+		The 'Delta' is a unit of change. Whenever you want to change a Story/Page, *always* go through deltas
+			-- with the exception of one-sided nonserialized variables, which you may edit freely (in fact you AVOID using Deltas for these)
