@@ -15,27 +15,23 @@ namespace passport.sessions
         public Session session;
 
         ClientsideLink link;
-        Storyteller storyteller;
-        HashSet<IStoryfan> fans;
+        public Storyteller storyteller { get; private set; }
         Dictionary<short, System.Func<byte[], Story>> storyDecodeFunctions;
 
         public ClientsideSessions(ClientsideLink link)
         {
             this.link = link;
             this.storyteller = new Storyteller(isAuthor: false);
-            this.fans = new HashSet<IStoryfan>();
             this.storyDecodeFunctions = new Dictionary<short, System.Func<byte[], Story>>();
             AddStorydecoder(1, b => { return new Session(b); });
             this.link.SetPostHandler<ServeStory>(ServeStory.op, (post) =>
                 {
                     var story = storyteller.Read(Decode(post));
-                    if (story!=null) PingStoryfans(story);
                 }
             );
             this.link.SetPostHandler<ServeStoryDelta>(ServeStoryDelta.op, (post) =>
                 {
                     var story = storyteller.Read(post.delta);
-                    if (story!=null) PingStoryfans(story);
                 }
             );
         }
@@ -46,13 +42,9 @@ namespace passport.sessions
                 reply => { }, rejectionStatus => { });
         }
 
-        public void AddStoryfan(IStoryfan fan)
+        public void AddStoryfan(short op, Storyfan storyfan)
         {
-            fans.Add(fan);
-        }
-        public void PingStoryfans(Story story)
-        {
-            foreach(var fan in fans) fan.StoryChanged(story);
+            storyteller.AddStoryfan(op, storyfan);
         }
 
         public Story Decode(ServeStory serveAction)

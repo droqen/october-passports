@@ -37,4 +37,7 @@ namespace passport.link {
 			Delayed = true;
 		}
 	}
+
+    [System.Serializable]
+    public struct OK { }
 }

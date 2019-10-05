@@ -8,7 +8,8 @@ namespace passport.sessions
 
     public class Session : Story
     {
-        override public short OPCODE { get { return 1; } }
+        public const short OPCODE = 1;
+        override public short op { get { return OPCODE; } }
 
         public int SessionId
         {

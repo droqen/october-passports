@@ -42,7 +42,7 @@ public class ServersideLink : MonoBehaviour {
 				// if (assistant.responseStatus == ResponseStatus.Success) message.Respond(Capn.Crunchatize(assistant.reply), ResponseStatus.Success);
 				// else message.Respond(assistant.responseStatus);
 			} else {
-				throw Dj.Crashf("generic action PrepareAssistant terminated illegally!\nYou must call REPLY, REJECT, or PENDING before the action is done.");
+				throw Dj.Crashf("generic action PrepareAssistant terminated illegally on opcode '{0}'!\nYou must call REPLY, REJECT, or PENDING before the action is done.", opCode);
 			}
 		});
 	}

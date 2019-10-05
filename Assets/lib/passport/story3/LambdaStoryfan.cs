@@ -3,13 +3,13 @@ using System.Collections;
 
 namespace passport.story3 {
 
-    public class LambdaStoryfan : IStoryfan
+    public class LambdaStoryfan<MyStory> : Storyfan<MyStory> where MyStory : Story
     {
-        System.Action<Story> onStoryChanged;
-        public void StoryChanged(Story story) {
+        System.Action<MyStory> onStoryChanged;
+        override public void StoryChanged(MyStory story) {
             this.onStoryChanged(story);
         }
-        public LambdaStoryfan(System.Action<Story> onStoryChanged) {
+        public LambdaStoryfan(System.Action<MyStory> onStoryChanged) {
             this.onStoryChanged = onStoryChanged;
         }
     }
