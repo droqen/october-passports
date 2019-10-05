@@ -15,12 +15,17 @@ namespace passport.story3 {
         }
         public void Write(Story story)
         {
+            Dj.Tempf("Write story {0}", story.address);
             if (!isAuthor) Dj.Crashf("Non-Authors can't Write. Failed to Write Story '{0}'.", story.address);
-            this.stories.Add(story.address, story);
+            if (story.SetStoryteller(this))
+            {
+                this.stories.Add(story.address, story);
+            }
         }
         public Story Read(Story story)
         {
             if (isAuthor) Dj.Crashf("Authors can't Read. Failed to Read Story '{0}'.", story.address);
+            story.SetStoryteller(this);
             this.stories[story.address] = story;
             return story;
         }
@@ -29,6 +34,7 @@ namespace passport.story3 {
             if (isAuthor) Dj.Crashf("Authors can't Read. Failed to Read delta Pages '{0}'.", delta.address);
             if (this.stories.TryGetValue(delta.address, out var story))
             {
+                story.SetStoryteller(this);
                 story.ReadChanges(delta);
                 return story;
             }

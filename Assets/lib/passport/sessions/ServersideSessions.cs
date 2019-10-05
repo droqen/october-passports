@@ -52,7 +52,6 @@ namespace passport.sessions
                 this.storyteller.Write(session);
                 
                 this.peerSessions.Add(session.PeerId, session);
-                link.Post(peer.Id, ServeStory.op, new ServeStory(session));
             };
             link.OnPeerDisconnect = (peer) =>
             {
@@ -72,6 +71,7 @@ namespace passport.sessions
                             posted.reply.okay = true;
                             posted.Reply();
                             session.WriteChanges(); // send to anyone who should be able to see this session story (should only be the peer)
+                            link.Post(session.PeerId, ServeStory.op, new ServeStory(session));
                         } else
                         {
                             posted.reply.okay = false;

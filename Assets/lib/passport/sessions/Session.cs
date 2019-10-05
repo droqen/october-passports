@@ -8,6 +8,8 @@ namespace passport.sessions
 
     public class Session : Story
     {
+        override public short OPCODE { get { return 1; } }
+
         public int SessionId
         {
             get { return Get<int>("sid"); }

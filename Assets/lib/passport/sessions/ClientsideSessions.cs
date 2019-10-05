@@ -17,16 +17,18 @@ namespace passport.sessions
         ClientsideLink link;
         Storyteller storyteller;
         HashSet<IStoryfan> fans;
+        Dictionary<short, System.Func<byte[], Story>> storyDecodeFunctions;
 
         public ClientsideSessions(ClientsideLink link)
         {
             this.link = link;
             this.storyteller = new Storyteller(isAuthor: false);
             this.fans = new HashSet<IStoryfan>();
-
+            this.storyDecodeFunctions = new Dictionary<short, System.Func<byte[], Story>>();
+            AddStorydecoder(1, b => { return new Session(b); });
             this.link.SetPostHandler<ServeStory>(ServeStory.op, (post) =>
                 {
-                    var story = storyteller.Read(post.story);
+                    var story = storyteller.Read(Decode(post));
                     if (story!=null) PingStoryfans(story);
                 }
             );
@@ -51,6 +53,21 @@ namespace passport.sessions
         public void PingStoryfans(Story story)
         {
             foreach(var fan in fans) fan.StoryChanged(story);
+        }
+
+        public Story Decode(ServeStory serveAction)
+        {
+            if (storyDecodeFunctions.TryGetValue(serveAction.storyOPCODE, out var fn))
+            {
+                return fn(serveAction.storyBytes);
+            } else
+            {
+                throw Dj.Crashf("Decode failed on Story with unknown OPCODE '{0}' at address '{1}'.", serveAction.storyOPCODE, new Session(serveAction.storyBytes).address);
+            }
+        }
+        public void AddStorydecoder(short op, System.Func<byte[], Story> fn)
+        {
+            this.storyDecodeFunctions.Add(op, fn);
         }
     }
 
