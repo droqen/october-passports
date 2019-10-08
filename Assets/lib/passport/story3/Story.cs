@@ -5,6 +5,7 @@ namespace passport.story3
 
     using crunch;
 
+    [System.Serializable]
     abstract public class Story
     {
         // public const short OPCODE = 0;
@@ -18,25 +19,24 @@ namespace passport.story3
         public T Get<T>(string key) { return Capn.Decrunchatize<T>(this.pages.data[key]); }
         public void Set<T>(string key, T value) { this.pages.data[key] = Capn.Crunchatize(value); }
 
-        public Storyteller storyteller { get; private set; }
+        [System.NonSerialized] Storyteller storyteller;
         public string address { get; private set; }
 
         public byte[] ToBytes()
         {
             return Capn.Crunchatize(this.pages);
         }
-        public Story(byte[] bytes)
+        public Story(Pages sourcePages)
         {
-            Pages loadedPages = Capn.Decrunchatize<Pages>(bytes);
-            this.address = loadedPages.address;
-            this.pages = loadedPages;
+            this.address = sourcePages.address;
+            this.pages = sourcePages;
         }
-        public Story(string address)
+        public Story(short op, string address)
         {
             // every story needs a 100% unique *address*.
             this.address = address;
             //this.unwrittenData = new Dictionary<string, byte[]>();
-            this.pages = new Pages { address = address, data = new Dictionary<string, byte[]>(), };
+            this.pages = new Pages { op = op, address = address, data = new Dictionary<string, byte[]>(), };
         }
 
         public bool SetStoryteller(Storyteller storyteller)
@@ -119,6 +119,7 @@ namespace passport.story3
     [System.Serializable]
     public struct Pages
     {
+        public short op;
         public string address;
         public Dictionary<string, byte[]> data;
     }

@@ -7,12 +7,13 @@ namespace ends.tower.story
     using passport.story3;
     using navdi3;
 
+    [System.Serializable]
     public class TowerEntity : Story
     {
         public const short OPCODE = 735;
         override public short op { get { return OPCODE; } }
 
-        public twin? LastTrackedWorldPos;
+        [System.NonSerialized] public twin? LastTrackedWorldPos;
 
         public int EntityId
         {
@@ -32,8 +33,8 @@ namespace ends.tower.story
             set { Set("pos", value); }
         }
 
-        public TowerEntity(byte[] bytes) : base(bytes) { }
-        public TowerEntity(string address) : base(address) { }
+        public TowerEntity(Pages pages): base(pages) { }
+        public TowerEntity(string address) : base(OPCODE, address) { }
     }
 
 }

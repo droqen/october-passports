@@ -1,12 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.IO;
 
 namespace ends.tower
 {
 
     using passport;
     using passport.link;
+    using passport.crunch;
     using passport.sessions;
 
     using post;
@@ -17,18 +19,35 @@ namespace ends.tower
 
     public class TowerServer : MonoBehaviour
     {
+        public float backupFreqInSeconds = 100f;
+        public float backupTimer;
+
+        WorldData worldData;
         ServersideLink link;
         ServersideSessions sessions;
-        Dictionary<twin, TowerZone> towerZones;
         Dictionary<string, TowerEntity> sessionToTowerEntities;
         EntGenerator entGenerator;
+        TowerStoryDecoder decoder;
         private void Start()
         {
+
+            string s = "hello";
+            Dj.Temp("Begin size test");
+            byte[] b = Capn.Crunchatize(s);
+            for (var i = 0; i < 5; i++)
+            {
+                Dj.Tempf("Iter #{0}, size {1}", i, b.Length);
+                b = Capn.Crunchatize(b);
+            }
+
+            backupTimer = backupFreqInSeconds;
+
+            worldData = new WorldData(true);
             link = GetComponent<ServersideLink>();
             sessions = new ServersideSessions(link);
-            towerZones = new Dictionary<twin, TowerZone>();
             sessionToTowerEntities = new Dictionary<string, TowerEntity>();
             entGenerator = new EntGenerator();
+            decoder = new TowerStoryDecoder();
 
             sessions.SetFunctionToAddStoryListeners<TowerEntity>(TowerEntity.OPCODE, this.GetWhoCanSeeMe_UpdateTracking);
             sessions.SetFunctionToAddStoryListeners<TowerZone>(TowerZone.OPCODE, this.GetWhosListeningHere);
@@ -96,9 +115,19 @@ namespace ends.tower
             SetupStartingZones();
         }
 
+        private void Update()
+        {
+            backupTimer -= Time.deltaTime;
+            if (backupTimer <= 0)
+            {
+                backupTimer = backupFreqInSeconds;
+                CreateWorldBackup();
+            }
+        }
+
         public void GetWhoCanSeeMe_UpdateTracking(TowerEntity ent, HashSet<Session> listeners)
         {
-            var currentZone = towerZones[ent.WorldPos];
+            var currentZone = this.worldData.towerZones[ent.WorldPos];
             GetWhosListeningHere(currentZone, listeners);
 
             if (!ent.LastTrackedWorldPos.HasValue || ent.LastTrackedWorldPos.Value != ent.WorldPos)
@@ -106,7 +135,7 @@ namespace ends.tower
                 Dj.Tempf("Changed position");
                 if (ent.LastTrackedWorldPos.HasValue)
                 {
-                    var previousZone = towerZones[ent.LastTrackedWorldPos.Value];
+                    var previousZone = this.worldData.towerZones[ent.LastTrackedWorldPos.Value];
                     GetWhosListeningHere(previousZone, listeners);
                 }
                 foreach (var session in listeners) if (session.EntityId == ent.EntityId) link.Post(session.PeerId,
@@ -114,7 +143,7 @@ namespace ends.tower
 
                 ent.LastTrackedWorldPos = ent.WorldPos; // now, update LastTrackedWorldPos.
 
-                entitiesById[ent.EntityId] = ent;
+                this.worldData.entitiesById[ent.EntityId] = ent;
             }
         }
         public void GetWhosListeningHere(TowerZone zone, HashSet<Session> listeners)
@@ -133,7 +162,7 @@ namespace ends.tower
                     var zone = new TowerZone("t/" + X + "," + Y);
                     zone.WorldPos = new twin(X, Y);
                     zone.ZoneName = "nowhere";
-                    towerZones[zone.WorldPos] = zone;
+                    this.worldData.towerZones[zone.WorldPos] = zone;
                     sessions.storyteller.Write(zone);
 
                     for (int i = Random.Range(0,3); i<4; i++)
@@ -150,7 +179,7 @@ namespace ends.tower
         {
             if (sessionToTowerEntities.TryGetValue(session.address, out var ent))
             {
-                if (towerZones.TryGetValue(ent.WorldPos, out var zone))
+                if (this.worldData.towerZones.TryGetValue(ent.WorldPos, out var zone))
                 {
                     link.Post(session.PeerId, ServeStory.op, new ServeStory(zone));
                 }
@@ -159,15 +188,14 @@ namespace ends.tower
             PushEntitiesToSession(session); 
         }
 
-        Dictionary<int, TowerEntity> entitiesById = new Dictionary<int, TowerEntity>();
 
         void PushEntitiesToSession(Session session)
         {
             if (sessionToTowerEntities.TryGetValue(session.address, out var ent))
             {
-                if (towerZones.TryGetValue(ent.WorldPos, out var zone))
+                if (this.worldData.towerZones.TryGetValue(ent.WorldPos, out var zone))
                 {
-                    foreach(var kvp in this.entitiesById)
+                    foreach(var kvp in this.worldData.entitiesById)
                     {
                         if (kvp.Value.WorldPos == ent.WorldPos)
                         {
@@ -176,6 +204,41 @@ namespace ends.tower
                     }
                 }
             }
+        }
+
+        public string CreateWorldBackup()
+        {
+            var sanitizedData = this.worldData.Clone();
+            foreach (var sessionKVP in sessionToTowerEntities)
+                sanitizedData.entitiesById.Remove(sessionKVP.Value.EntityId);
+
+            var backupBytes = Capn.Crunchatize(sanitizedData);
+            string backupName = "lastbackup";
+            File.WriteAllBytes(Application.streamingAssetsPath + "/" + backupName, backupBytes);
+            return backupName;
+        }
+        public void LoadFromWorldBackup(string backupName)
+        {
+            var backupBytes = File.ReadAllBytes(Application.streamingAssetsPath + "/" + backupName);
+            this.worldData = Capn.Decrunchatize<WorldData>(backupBytes);
+        }
+    }
+
+
+    [System.Serializable]
+    struct WorldData
+    {
+        public Dictionary<twin, TowerZone> towerZones;
+        public Dictionary<int, TowerEntity> entitiesById;
+        public WorldData(bool generateNew)
+        {
+            if (generateNew == false) throw Dj.Crash("WorldData(false) is illegal");
+            towerZones = new Dictionary<twin, TowerZone>();
+            entitiesById = new Dictionary<int, TowerEntity>();
+        }
+        public WorldData Clone()
+        {
+            return (WorldData)MemberwiseClone();
         }
     }
 

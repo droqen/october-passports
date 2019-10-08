@@ -5,6 +5,7 @@ using System.Collections.Generic;
 namespace passport.sessions
 {
 
+    using crunch;
     using link;
     using sessions.post;
     using story3;
@@ -16,14 +17,14 @@ namespace passport.sessions
 
         ClientsideLink link;
         public Storyteller storyteller { get; private set; }
-        Dictionary<short, System.Func<byte[], Story>> storyDecodeFunctions;
+        List<IStorydecoder> decoders;
 
         public ClientsideSessions(ClientsideLink link)
         {
             this.link = link;
             this.storyteller = new Storyteller(isAuthor: false);
-            this.storyDecodeFunctions = new Dictionary<short, System.Func<byte[], Story>>();
-            AddStorydecoder(1, b => { return new Session(b); });
+            this.decoders = new List<IStorydecoder>();
+            PushStorydecoder(new SessionDecoder());
             this.link.SetPostHandler<ServeStory>(ServeStory.op, (post) =>
                 {
                     var story = storyteller.Read(Decode(post));
@@ -49,17 +50,18 @@ namespace passport.sessions
 
         public Story Decode(ServeStory serveAction)
         {
-            if (storyDecodeFunctions.TryGetValue(serveAction.storyOPCODE, out var fn))
+            Pages pages = Capn.Decrunchatize<Pages>(serveAction.storyBytes);
+            foreach (var decoder in decoders)
             {
-                return fn(serveAction.storyBytes);
-            } else
-            {
-                throw Dj.Crashf("Decode failed on Story with unknown OPCODE '{0}' at address '{1}'.", serveAction.storyOPCODE, new Session(serveAction.storyBytes).address);
+                var story = decoder.Decode(pages);
+                if (story != null) return story;
             }
+
+            throw Dj.Crashf("Decode failed on Story with unknown OPCODE '{0}' at address '{1}'. (OPCODE was not caught by any pushed IStorydecoder)", pages.op, pages.address);
         }
-        public void AddStorydecoder(short op, System.Func<byte[], Story> fn)
+        public void PushStorydecoder(IStorydecoder decoder)
         {
-            this.storyDecodeFunctions.Add(op, fn);
+            this.decoders.Insert(0, decoder);
         }
     }
 

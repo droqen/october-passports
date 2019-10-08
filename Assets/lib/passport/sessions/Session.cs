@@ -29,8 +29,8 @@ namespace passport.sessions
 
         public int PeerId;
 
-        public Session(byte[] bytes) : base(bytes) { }
-        public Session(string address) : base(address) { }
+        public Session(Pages pages) : base(pages) { }
+        public Session(string address) : base(OPCODE, address) { }
     }
 
 }

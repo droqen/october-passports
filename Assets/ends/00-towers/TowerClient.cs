@@ -60,7 +60,6 @@ namespace ends.tower
                 Dj.Tempf("My session says my name is '{0}'", currentSession.Username);
             }));
 
-            sessions.AddStorydecoder(TowerZone.OPCODE, b => { return new TowerZone(b); });
             sessions.AddStoryfan(TowerZone.OPCODE, new LambdaStoryfan<TowerZone>(zone =>
             {
                 currentZone = zone;
@@ -68,7 +67,6 @@ namespace ends.tower
                 visibleEntities.Clear();
             }));
 
-            sessions.AddStorydecoder(TowerEntity.OPCODE, b => { return new TowerEntity(b); });
             sessions.AddStoryfan(TowerEntity.OPCODE, new LambdaStoryfan<TowerEntity>(ent =>
             {
                 bool its_me = false;
@@ -88,6 +86,8 @@ namespace ends.tower
                     else visibleEntities.Remove(ent);
                 }
             }));
+
+            sessions.PushStorydecoder(new TowerStoryDecoder());
 
         }
 
