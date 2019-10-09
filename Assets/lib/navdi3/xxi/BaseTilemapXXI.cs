@@ -30,10 +30,38 @@
             if (!entlots.ContainsKey(entLotName)) entlots.Add(entLotName, EntityLot.NewEntLot(entLotName));
             return entlots[entLotName];
         }
+
+        // if loading from loader
+
         protected void InitializeTileSystem()
         {
             loader.SetupTileset(sprites, GetSolidTileIds(), GetSpawnTileIds());
             loader.PlaceTiles(loader.Load(firstLevel), tilemap, this.SpawnTileId);
+        }
+
+        // if using the 'tt' system
+
+        public void InitializeManualTT()
+        {
+            loader.SetupTileset(sprites, GetSolidTileIds(), GetSpawnTileIds());
+            tts = new Dictionary<twin, int>();
+        }
+        public void ClearAllTilesTT()
+        {
+            tts.Clear();
+            tilemap.ClearAllTiles();
+        }
+
+        Dictionary<twin, int> tts;
+        public void Sett(twin cell, int TileId)
+        {
+            tts[cell] = TileId;
+            tilemap.SetTile(cell, loader.tileset[TileId]);
+        }
+        public int Gett(twin cell)
+        {
+            if (tts.TryGetValue(cell, out var TileId)) return TileId;
+            else return default(int);
         }
     }
 }

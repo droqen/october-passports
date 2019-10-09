@@ -5,20 +5,32 @@
     {
         public FontLot fontLot;
 
-        public static CharLot NewCharLot(FontLot fontLot, string name = "", Transform parent = null)
+        public static CharLot NewCharLot(FontLot fontLot, string name = "", Vector3 localPosition = default(Vector3), string startingText = "", Transform parent = null)
         {
             var gob = new GameObject("charlot{" + name + "}");
             gob.transform.SetParent(parent);
-            gob.transform.localPosition = Vector3.zero;
+            gob.transform.localPosition = localPosition;
             var lot = gob.AddComponent<CharLot>();
             lot.fontLot = fontLot;
             lot.lotName = name;
+            lot.Print(startingText);
             return lot;
         }
 
         public void Print(string text)
         {
+            Clear();
+            twin pos = twin.zero;
+            foreach(var c in text)
+            {
+                Show(pos, c);
+                pos.x++;
+            }
+        }
 
+        public void Show(twin pos, char c)
+        {
+            fontLot.SpawnChar(c, transform, transform.position + new Vector3( pos.x * fontLot.charWidth, pos.y * fontLot.lineHeight ));
         }
 
         //public void Show(Vector2Int pos, char c)
